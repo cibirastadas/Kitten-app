@@ -2,7 +2,7 @@
 
 Mobile application with react-native framework
 
-- using placekitten.com API
+- using [placekitten.com](https://placekitten.com) API
 - Have two routes
 - Primary route where all kittens are displayed
 - Secondary route kitten info view
