@@ -13,7 +13,7 @@ const CustomModal = ({
   modalVisible,
   handleModalVisible,
   handleAmmount,
-  ammount,
+  inputAmmount,
 }) => {
   return (
     <Modal
@@ -35,11 +35,10 @@ const CustomModal = ({
               borderColor: "gray",
               borderWidth: 2,
             }}
-            label="asdddddddddd"
             onChangeText={(text) => handleAmmount(text)}
             keyboardType="numeric"
             maxLength={3}
-            value={ammount}
+            value={String(inputAmmount)}
           />
           <TouchableHighlight
             style={styles.hideModal}

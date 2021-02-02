@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import color from "../config/color";
-import axios from "axios";
+import { checkConnection } from "../components/Connection";
+import NoConnection from "../components/NoConnection";
+import KittenNames from "../components/KittensNames";
+import CustomModal from "../components/CustomModal";
 import {
   View,
   Text,
@@ -8,75 +11,116 @@ import {
   Image,
   TouchableHighlight,
   FlatList,
+  LogBox,
 } from "react-native";
+
 import AnimatedEllipsis from "react-native-animated-ellipsis";
-import CustomModal from "../components/CustomModal";
 
 const HomeScreen = ({ navigation }) => {
-  const [ammount, setAmmount] = useState(100);
+  const [inputAmmount, setInputAmmount] = useState("");
+  const [chosenAmmount, setChosenAmmount] = useState(100);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
-  const [kittens, setKittens] = useState([]);
+  const [connectStatus, setConnectStatus] = useState(false);
+  const [kittens, setKittens] = useState([
+    {
+      key: "0",
+      img: "",
+      name: "",
+    },
+  ]);
 
-  const fetchData = async () => {
-    fetch("http://placekitten.com/g/200/300")
-      .then((response) => response.blob())
-      .then(async (blob) => {
-        let reader = new FileReader();
-        reader.onload = () => {
-          setKittens(reader.result);
-        };
-        const x = reader.readAsDataURL(blob);
-        console.log(x);
-      });
+  const fetchKittensData = () => {
+    const newArray = [...Array(chosenAmmount)].map((a, index) => {
+      return {
+        key: String(index),
+        img: `http://placekitten.com/g/${randomKittenPicture()}/${randomKittenPicture()}`,
+        name: randomKittenName(),
+      };
+    });
+    setKittens(newArray);
   };
+
   useEffect(() => {
+    LogBox.ignoreLogs(["Animated: `useNativeDriver`"]);
+    checkConnection().then((res) => {
+      setConnectStatus(res);
+    });
     setLoading(true);
-    fetchData();
+    fetchKittensData();
     setLoading(false);
-  }, []);
+  }, [chosenAmmount]);
+
+  const randomKittenPicture = () => {
+    return Math.floor(Math.random() * (500 - 300 + 1)) + 300;
+  };
+
+  const randomKittenName = () => {
+    var kittensNames = KittenNames;
+    return kittensNames[Math.floor(Math.random() * kittensNames.length)];
+  };
 
   const handleAmmount = (text) => {
-    setAmmount(text);
+    setInputAmmount(text);
   };
+
   const handleModalVisible = () => {
     setModalVisible(!modalVisible);
-    //Apply ammount to data
+    setChosenAmmount(Number(inputAmmount));
   };
-  const Item = ({ name }) => (
-    <TouchableHighlight
-      activeOpacity={0.6}
-      underlayColor="#DDDDDD"
-      onPress={() =>
-        navigation.navigate("About", {
-          kittenName: name,
-        })
-      }
-    >
-      <Image
-        resizeMode="contain"
-        source={{
-          uri: "http://placekitten.com/g/350/300",
-          width: "100%",
-          height: 300,
+
+  const Item = ({ item }) => (
+    <View style={styles.imageBox}>
+      <View style={{ width: "100%", height: 300 }}>
+        <TouchableHighlight
+          style={{}}
+          activeOpacity={0.6}
+          underlayColor="#DDDDDD"
+          onPress={() =>
+            navigation.navigate("About", {
+              name: item.name,
+              img: item.img,
+            })
+          }
+        >
+          <Image
+            source={{
+              uri: item.img,
+              width: "100%",
+              height: "100%",
+              resizeMode: "stretch",
+            }}
+          />
+        </TouchableHighlight>
+      </View>
+      <Text
+        style={{
+          textAlign: "center",
+          fontSize: 20,
+          letterSpacing: 5,
+          paddingTop: 10,
         }}
-      />
-    </TouchableHighlight>
+      >
+        {item.name}
+      </Text>
+    </View>
   );
 
-  const renderItem = ({ item }) => <Item name={item.name} />;
+  const renderItem = ({ item }) => <Item item={item} />;
 
-  return loading ? (
+  return loading && connectStatus ? (
     <View style={{ alignItems: "center" }}>
       <AnimatedEllipsis style={{ ...styles.loadingScreen }} />
     </View>
+  ) : !connectStatus ? (
+    <NoConnection />
   ) : (
     <View style={{ flex: 1, alignItems: "center" }}>
       <CustomModal
         modalVisible={modalVisible}
         handleModalVisible={handleModalVisible}
         handleAmmount={handleAmmount}
-        ammount={ammount}
+        inputAmmount={inputAmmount}
       />
       <TouchableHighlight
         style={styles.openButton}
@@ -86,33 +130,11 @@ const HomeScreen = ({ navigation }) => {
       >
         <Text style={styles.textStyle}>Choose the amount of kitten</Text>
       </TouchableHighlight>
-      <View style={styles.imageBox}>
-        <TouchableHighlight
-          activeOpacity={0.6}
-          underlayColor="#DDDDDD"
-          onPress={() =>
-            navigation.navigate("About", {
-              kittenName: "Kitten Name",
-            })
-          }
-        >
-          <Image
-            resizeMode="contain"
-            source={{
-              uri: "http://placekitten.com/g/350/300",
-              width: "100%",
-              height: 300,
-            }}
-          />
-        </TouchableHighlight>
-        {/*         <FlatList
-    initialNumToRender={ammount}
-      data={kittens}
-      renderItem={renderItem}
-      keyExtractor={(item) => item.id}
-    /> */}
-        <Text style={{ textAlign: "center", fontSize: 20 }}>Kitten name</Text>
-      </View>
+      <FlatList
+        style={{ flex: 1, width: "95%" }}
+        data={kittens}
+        renderItem={renderItem}
+      />
     </View>
   );
 };
@@ -133,7 +155,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   imageBox: {
-    width: "95%",
+    width: "100%",
     marginTop: 20,
     padding: 15,
     backgroundColor: "#fff",
